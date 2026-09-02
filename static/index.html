@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>月经记录助手</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="auth-view" class="center hidden">
+    <form id="auth-form" class="card">
+      <h1>月经记录助手</h1>
+      <h2 id="auth-title">登录</h2>
+      <label>
+        用户名
+        <input id="username" name="username" autocomplete="username" required>
+      </label>
+      <label>
+        密码
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button id="auth-submit" type="submit">登录</button>
+      <a id="auth-toggle" href="#">没有账号？去注册</a>
+      <p id="auth-error" class="error"></p>
+      <p class="hint">预测与记录仅供参考，不构成医疗建议。</p>
+    </form>
+  </div>
+
+  <div id="app-view" class="hidden">
+    <header>
+      <h1>月经记录助手</h1>
+      <div class="user-box">
+        <span id="username-label"></span>
+        <button id="logout-btn" class="ghost">退出</button>
+      </div>
+    </header>
+
+    <div id="notification-bar"></div>
+
+    <main>
+      <aside id="summary-panel">
+        <h2>周期预测</h2>
+        <div id="summary-content"></div>
+        <h2>图例</h2>
+        <div class="legend">
+          <span class="legend-item"><i class="dot flow-spotting"></i>点滴</span>
+          <span class="legend-item"><i class="dot flow-light"></i>少量</span>
+          <span class="legend-item"><i class="dot flow-medium"></i>中量</span>
+          <span class="legend-item"><i class="dot flow-heavy"></i>大量</span>
+        </div>
+      </aside>
+
+      <section id="calendar-section">
+        <div class="calendar-toolbar">
+          <button id="prev-month" class="ghost">‹</button>
+          <span id="month-label"></span>
+          <button id="next-month" class="ghost">›</button>
+          <button id="today-btn" class="ghost">今天</button>
+        </div>
+        <div id="calendar-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="editor-modal" class="modal hidden">
+    <div class="modal-box card">
+      <h2 id="editor-title"></h2>
+      <form id="editor-form"></form>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
