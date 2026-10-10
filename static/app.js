@@ -56,12 +56,24 @@ function hide(id) {
   document.getElementById(id).classList.add('hidden');
 }
 
+function fmtErrorDetail(detail) {
+  if (!detail) return "请求失败";
+  if (Array.isArray(detail)) {
+    return detail.map((e) => {
+      const field = Array.isArray(e.loc) ? e.loc[e.loc.length - 1] : '';
+      return field ? `${field}: ${e.msg}` : e.msg;
+    })
+    .join('; ');
+  }
+  return detail;
+}
+
 async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (state.token) headers.Authorization = `Bearer ${state.token}`;
   const res = await fetch(API + path, { ...options, headers });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.detail || '请求失败');
+  if (!res.ok) throw new Error(fmtErrorDetail(data.detail));
   return data;
 }
 
@@ -143,6 +155,7 @@ function renderCalendar() {
     const cell = document.createElement('div');
     cell.className = `cal-cell ${cls}`;
     const key = dateKey(d);
+    const isFuture = key > todayKey;
     const rec = state.records.get(key);
     if (rec && rec.flow !== 'none') {
       cell.classList.add('has-flow', `flow-${rec.flow}`);
@@ -155,7 +168,11 @@ function renderCalendar() {
     if (key === todayKey) cell.classList.add('today');
     if (cls !== 'other-month') {
       cell.dataset.date = key;
-      cell.addEventListener('click', () => openEditor(key));
+      if (isFuture) {
+        cell.classList.add('future');
+      } else {
+        cell.addEventListener('click', () => openDetail(key));
+      }
     }
     grid.appendChild(cell);
   };
@@ -236,10 +253,78 @@ function textField(name, label, value, textarea) {
   return wrap;
 }
 
+const DETAIL_FIELDS = [
+  { key: 'flow', label: '经量', type: 'select' },
+  { key: 'colors', label: '颜色', type: 'multi' },
+  { key: 'clots', label: '血块', type: 'select' },
+  { key: 'pain', label: '疼痛', type: 'select' },
+  { key: 'symptoms', label: '症状', type: 'multi' },
+  { key: 'mood', label: '情绪', type: 'multi' },
+  { key: 'medication', label: '用药', type: 'text' },
+  { key: 'notes', label: '备注', type: 'text' },
+];
+
+function openDetail(date) {
+  state.editingDate = date;
+  const rec = state.records.get(date) || {};
+  document.getElementById('editor-title').textContent = date;
+
+  const content = document.getElementById('detail-content');
+  content.innerHTML = '';
+
+  const hasAny = DETAIL_FIELDS.some((f) => {
+    const v = rec[f.key];
+    if (Array.isArray(v)) return v.length > 0;
+    if (f.key === 'flow' || f.key === 'clots' || f.key === 'pain') return v && v !== 'none';
+    return v && String(v).trim() !== '';
+  });
+
+  if (!hasAny) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = '这一天还没有记录。';
+    content.appendChild(empty);
+  } else {
+    const list = document.createElement('div');
+    list.className = 'detail-list';
+    DETAIL_FIELDS.forEach((f) => {
+      const v = rec[f.key];
+      let text = '';
+      if (f.type === 'select') {
+        if (!v || v === 'none') return;
+        text = labelOf(f.key, v);
+      } else if (f.type === 'multi') {
+        if (!Array.isArray(v) || v.length === 0) return;
+        text = v.map((x) => labelOf(f.key, x)).join('、');
+      } else {
+        if (!v || String(v).trim() === '') return;
+        text = v;
+      }
+      const row = document.createElement('div');
+      row.className = 'detail-row';
+      const name = document.createElement('span');
+      name.className = 'detail-label';
+      name.textContent = f.label;
+      const val = document.createElement('span');
+      val.className = 'detail-value';
+      val.textContent = text;
+      row.append(name, val);
+      list.appendChild(row);
+    });
+    content.appendChild(list);
+  }
+
+  show('detail-view');
+  hide('editor-form');
+  show('editor-modal');
+}
+
 function openEditor(date) {
   state.editingDate = date;
   const rec = state.records.get(date) || {};
   document.getElementById('editor-title').textContent = `编辑 ${date}`;
+  hide('detail-view');
+  show('editor-form');
   const form = document.getElementById('editor-form');
   form.innerHTML = '';
   form.appendChild(fieldGroup('flow', '经量', OPTIONS.flow, 'select', rec.flow || 'none'));
@@ -292,9 +377,9 @@ async function saveRecord(e) {
   const body = collectForm(e.target);
   await api(`/records/${state.editingDate}`, { method: 'PUT', body: JSON.stringify(body) });
   state.records.set(state.editingDate, { date: state.editingDate, ...body });
-  hide('editor-modal');
   renderCalendar();
   await refreshPredictions();
+  openDetail(state.editingDate);
 }
 
 async function deleteRecord() {
@@ -378,6 +463,8 @@ function bindEvents() {
     toggleAuthMode();
   });
   document.getElementById('logout-btn').addEventListener('click', logout);
+  document.getElementById('detail-edit').addEventListener('click', () => openEditor(state.editingDate));
+  document.getElementById('detail-close').addEventListener('click', () => hide('editor-modal'));
   document.getElementById('prev-month').addEventListener('click', () => {
     state.month = new Date(state.month.getFullYear(), state.month.getMonth() - 1, 1);
     loadMonth().catch((err) => alert(err.message));

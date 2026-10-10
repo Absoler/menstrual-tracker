@@ -65,10 +65,18 @@
   <div id="editor-modal" class="modal hidden">
     <div class="modal-box card">
       <h2 id="editor-title"></h2>
-      <form id="editor-form"></form>
+      <div id="detail-view">
+        <div id="detail-content"></div>
+        <div class="actions">
+          <button id="detail-edit" type="button">编辑</button>
+          <button id="detail-close" type="button" class="ghost">关闭</button>
+        </div>
+      </div>
+      <form id="editor-form" class="hidden"></form>
     </div>
   </div>
 
   <script src="/app.js"></script>
 </body>
 </html>
+
