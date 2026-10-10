@@ -1,0 +1,23 @@
+# systemd 服务单元：月经记录助手
+# 安装方法见 docs/deploy.md。假设项目部署在 /opt/menstrual-tracker，
+# 若路径不同，请同步修改下面的 WorkingDirectory 与 ExecStart。
+
+[Unit]
+Description=Menstrual Tracker (FastAPI + uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/menstrual-tracker
+ExecStart=/opt/menstrual-tracker/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=3
+
+# 以专用低权限用户运行（部署文档中的 useradd 步骤会创建它）；
+# 如不想新建用户，可删除下面两行（将以 root 运行，不推荐）。
+User=tracker
+Group=tracker
+
+[Install]
+WantedBy=multi-user.target
